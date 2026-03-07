@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:fluttet_demo/dao/home_dao.dart';
 import 'package:fluttet_demo/model/home_ar_model_entity.dart';
 import 'package:fluttet_demo/util/screen_adapter_help.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -59,10 +61,18 @@ class _ArticleItemWidgetState extends State<_ArticleItemWidget>
     super.dispose();
   }
 
-  void _toggleLike() {
-    setState(() => _isLiked = !_isLiked);
-    _animController.forward(from: 0);
-    debugPrint("点赞：$_isLiked");
+  void _toggleLike() async {
+    var response;
+    if (_isLiked) {
+      response = await HomeDao.getUnLikeList(position: widget.data.id);
+    } else {
+      response = await HomeDao.getLikeList(position: widget.data.id);
+    }
+    if(response["errorCode"] == 0) {
+      setState(() => _isLiked = !_isLiked);
+      _animController.forward(from: 0);
+      debugPrint("点赞：$_isLiked");
+    }
   }
 
   @override
