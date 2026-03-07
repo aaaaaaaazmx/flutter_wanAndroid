@@ -11,7 +11,7 @@ import 'package:fluttet_demo/util/navigator_util.dart';
 import 'package:fluttet_demo/util/screen_adapter_help.dart';
 import 'package:fluttet_demo/widget/banner_widget.dart';
 import 'package:fluttet_demo/widget/hot_key_list.dart';
-
+import 'package:easy_refresh/easy_refresh.dart';
 import '../widget/article_lsit.dart';
 
 class HomePage extends StatefulWidget {
@@ -27,13 +27,14 @@ class _HomePageState extends State<HomePage>
   late List<String> bannerList = [];
   List<HotKeyData> hotKeyEntity = [];
 
-  get _loginButton => ElevatedButton(
-    onPressed: () {
-      var loginOut = LoginDao.loginOut();
-      NavigatorUtil.pushLogin();
-    },
-    child: Text("登出"),
-  );
+  get _loginButton =>
+      ElevatedButton(
+        onPressed: () {
+          var loginOut = LoginDao.loginOut();
+          NavigatorUtil.pushLogin();
+        },
+        child: Text("登出"),
+      );
 
   /// 当前状态栏是否为深色图标（用于浅色背景）
   bool _isDarkIcon = false;
@@ -105,29 +106,41 @@ class _HomePageState extends State<HomePage>
   bool get wantKeepAlive => false;
 
   double _appBarAlpha = 0;
+  int index = 1;
 
-  get _appBar => Opacity(
-    opacity: _appBarAlpha,
-    child: Container(
-      height: 80.px,
-      decoration: BoxDecoration(color: Colors.white),
-      child: Center(
-        child: Padding(
-          padding: EdgeInsets.only(top: 20.px),
-          child: Text("首页", style: TextStyle(color: Colors.black)),
+  get _appBar =>
+      Opacity(
+        opacity: _appBarAlpha,
+        child: Container(
+          height: 80.px,
+          decoration: BoxDecoration(color: Colors.white),
+          child: Center(
+            child: Padding(
+              padding: EdgeInsets.only(top: 20.px),
+              child: Text("首页", style: TextStyle(color: Colors.black)),
+            ),
+          ),
         ),
-      ),
-    ),
-  );
+      );
 
-  get _listView => ListView(
-    children: [
-      BannerWidget(bannerListUrl: bannerList),
-      HotKeyList(hotKeyList: hotKeyEntity),
-      ArticleLsit(articleList: homeArModelEntity?.datas),
-      _loginButton,
-    ],
-  );
+  get _listView =>
+      EasyRefresh(
+        onRefresh: () async {
+          _getHotKeyList();
+          _handleRefresh();
+        },
+        onLoad: () async {
+          _handleRefresh(position: index);
+        },
+        child: ListView(
+          children: [
+            BannerWidget(bannerListUrl: bannerList),
+            HotKeyList(hotKeyList: hotKeyEntity),
+            ArticleLsit(articleList: homeArModelEntity?.datas),
+            _loginButton,
+          ],
+        ),
+      );
 
   void _onScroll(double pixels) {
     double alpha = pixels / appScrollPix;
@@ -152,12 +165,18 @@ class _HomePageState extends State<HomePage>
   // 请求的文章列表
   HomeArModelEntity? homeArModelEntity;
 
-  Future<void> _handleRefresh() async {
+  Future<void> _handleRefresh({int? position = 0}) async {
     try {
       debugPrint("请求开始");
-      var fetch = await HomeDao.fetch(position: 1);
-      setState(() {
+      var fetch = await HomeDao.fetch(position: position);
+      if (position == 0) {
         homeArModelEntity = fetch;
+        index = 1;
+      } else {
+        homeArModelEntity?.datas?.addAll(fetch?.datas ?? []);
+        index++;
+      }
+      setState(() {
         homeArModelEntity?.datas?.forEach((e) {
           debugPrint("forEach: ${e.title}");
         });
@@ -175,7 +194,7 @@ class _HomePageState extends State<HomePage>
               ?.map((e) => e.imagePath!)
               .whereType<String>()
               .toList() ??
-          [];
+              [];
 
       debugPrint("bannerList: $bannerList");
       setState(() {
