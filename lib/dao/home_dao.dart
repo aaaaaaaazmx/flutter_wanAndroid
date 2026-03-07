@@ -11,8 +11,9 @@ import 'package:http/http.dart' as http;
 
 /// 首页Dao数据接口
 class HomeDao {
+  static const urlHost = 'https://www.wanandroid.com';
   static Future<HomeArModelEntity?> fetch({int? position = 0}) async {
-    var url = Uri.parse("${LoginDao.urlHost}/article/list/$position/json");
+    var url = Uri.parse("${urlHost}/article/list/$position/json");
     var response = await http.get(url);
     var utf8decoder = Utf8Decoder();
     var convert = utf8decoder.convert(response.bodyBytes);
@@ -41,7 +42,7 @@ class HomeDao {
   }
 
   static Future<BannerEntity?> getBanner() async {
-    var parse = Uri.parse("${LoginDao.urlHost}/banner/json");
+    var parse = Uri.parse("${urlHost}/banner/json");
     var response = await http.get(parse, headers: hiHeader());
     var utf8decoder = Utf8Decoder();
     var convert = utf8decoder.convert(response.bodyBytes);
@@ -73,7 +74,7 @@ class HomeDao {
 
   /// 搜索热词
   static Future<HotKeyEntity?> getHotKeyList() async {
-    var parse = Uri.parse("${LoginDao.urlHost}/hotkey/json");
+    var parse = Uri.parse("${urlHost}/hotkey/json");
     var response = await http.get(parse);
     var utf8decoder = Utf8Decoder();
     debugPrint("gethotKeyList: ${utf8decoder.convert(response.bodyBytes)}");
@@ -97,9 +98,47 @@ class HomeDao {
     return null;
   }
 
-  /// 带你赞
-  static Future<HomeArModelEntity?> getLikeList({int? position = 0}) async {
-    var parse = Uri.parse("${LoginDao.urlHost}/lg/collect/list/$position/json");
+  /// 点赞加收藏
+  static Future<dynamic> getLikeList({int? position = 0}) async {
+    var parse = Uri.parse("${urlHost}/lg/collect/$position/json");
+    var post = await http.post(parse, headers: hiHeader());
+    var convert = Utf8Decoder().convert(post.bodyBytes);
+    switch (post.statusCode) {
+      case 200:
+        {
+          var result = json.decode(convert);
+          debugPrint("getLikeList: $result");
+          return result;
+        }
+      case 401:
+        {
+          NavigatorUtil.pushLogin();
+          return null;
+        }
+      default:
+        return throw Exception(convert);
+    }
+  }
 
+  /// 取消点赞
+  static Future<dynamic> getUnLikeList({int? position = 0}) async {
+    var parse = Uri.parse("${urlHost}/lg/uncollect_originId/$position/json");
+    var post = await http.post(parse, headers: hiHeader());
+    var convert = Utf8Decoder().convert(post.bodyBytes);
+    switch (post.statusCode) {
+      case 200:
+        {
+          var result = json.decode(convert);
+          debugPrint("getUnLikeList: $result");
+          return result;
+        }
+      case 401:
+        {
+          NavigatorUtil.pushLogin();
+          return null;
+        }
+      default:
+        return throw Exception(convert);
+    }
   }
 }
