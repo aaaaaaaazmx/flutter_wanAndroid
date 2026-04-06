@@ -1,17 +1,17 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fluttet_demo/dao/home_dao.dart';
-import 'package:fluttet_demo/dao/login_dao.dart';
-import 'package:fluttet_demo/data_type.dart';
 import 'package:fluttet_demo/generated/hot_key_entity.dart';
 import 'package:fluttet_demo/model/home_ar_model_entity.dart';
+import 'package:fluttet_demo/pages/search_page.dart';
 import 'package:fluttet_demo/util/navigator_util.dart';
 import 'package:fluttet_demo/util/screen_adapter_help.dart';
+import 'package:fluttet_demo/util/view_util.dart';
 import 'package:fluttet_demo/widget/banner_widget.dart';
 import 'package:fluttet_demo/widget/hot_key_list.dart';
 import 'package:easy_refresh/easy_refresh.dart';
+import 'package:fluttet_demo/widget/search_bar_widget.dart';
+import '../dao/login_dao.dart';
 import '../widget/article_lsit.dart';
 
 class HomePage extends StatefulWidget {
@@ -27,14 +27,13 @@ class _HomePageState extends State<HomePage>
   late List<String> bannerList = [];
   List<HotKeyData> hotKeyEntity = [];
 
-  get _loginButton =>
-      ElevatedButton(
-        onPressed: () {
-          var loginOut = LoginDao.loginOut();
-          NavigatorUtil.pushLogin();
-        },
-        child: Text("登出"),
-      );
+  get _loginButton => ElevatedButton(
+    onPressed: () {
+      LoginDao.loginOut();
+      NavigatorUtil.pushLogin();
+    },
+    child: Text("搜索"),
+  );
 
   /// 当前状态栏是否为深色图标（用于浅色背景）
   bool _isDarkIcon = false;
@@ -103,61 +102,96 @@ class _HomePageState extends State<HomePage>
   }
 
   @override
-  bool get wantKeepAlive => false;
+  bool get wantKeepAlive => true;
 
   double _appBarAlpha = 0;
+  // 用 ValueNotifier 隔离 AppBar 重建，滚动时不触发整页 setState
+  final ValueNotifier<double> _alphaNotifier = ValueNotifier(0);
   int index = 1;
 
-  get _appBar =>
-      Opacity(
-        opacity: _appBarAlpha,
-        child: Container(
-          height: 80.px,
-          decoration: BoxDecoration(color: Colors.white),
-          child: Center(
-            child: Padding(
-              padding: EdgeInsets.only(top: 20.px),
-              child: Text("首页", style: TextStyle(color: Colors.black)),
+  get _appBar {
+    double top = MediaQuery.of(context).padding.top;
+    return ValueListenableBuilder<double>(
+      valueListenable: _alphaNotifier,
+      builder: (_, alpha, __) => Column(
+        children: [
+          addShadow(
+            child: Container(
+              padding: EdgeInsets.only(top: top),
+              height: 60.px + top,
+              decoration: BoxDecoration(
+                color: Color.fromARGB(
+                  (alpha * 255).toInt(),
+                  255, 255, 255,
+                ),
+              ),
+              child: SearchBarWidget(
+                hint: "请输入搜索内容",
+                onChanged: (value) {},
+                searchBarType: alpha > 0.2
+                    ? SearchBarType.homeLight
+                    : SearchBarType.home,
+                onTap: () => _jumpToSearch(),
+                onLeftButtonClick: () {},
+                onRightButtonClick: () {},
+                onSearch: () {},
+              ),
             ),
           ),
-        ),
-      );
+        ],
+      ),
+    );
+  }
 
-  get _listView =>
-      EasyRefresh(
-        onRefresh: () async {
-          _getHotKeyList();
-          _handleRefresh();
-        },
-        onLoad: () async {
-          _handleRefresh(position: index);
-        },
-        child: ListView(
-          children: [
-            BannerWidget(bannerListUrl: bannerList),
-            HotKeyList(hotKeyList: hotKeyEntity),
-            ArticleLsit(articleList: homeArModelEntity?.datas),
-            _loginButton,
-          ],
+  Opacity opacity() {
+    return Opacity(
+      opacity: _appBarAlpha,
+      child: Container(
+        height: 80.px,
+        decoration: BoxDecoration(color: Colors.white),
+        child: Center(
+          child: Padding(
+            padding: EdgeInsets.only(top: 20.px),
+            child: Text("首页", style: TextStyle(color: Colors.black)),
+          ),
         ),
-      );
+      ),
+    );
+  }
+
+  get _listView => EasyRefresh(
+    onRefresh: () async {
+      _getHotKeyList();
+      _handleRefresh();
+    },
+    onLoad: () async {
+      _handleRefresh(position: index);
+    },
+    child: CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(child: BannerWidget(bannerListUrl: bannerList)),
+        SliverToBoxAdapter(child: HotKeyList(hotKeyList: hotKeyEntity)),
+        SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (ctx, i) => ArticleItemWidget(data: homeArModelEntity!.datas![i]),
+            childCount: homeArModelEntity?.datas?.length ?? 0,
+          ),
+        ),
+        SliverToBoxAdapter(child: _loginButton),
+      ],
+    ),
+  );
 
   void _onScroll(double pixels) {
-    double alpha = pixels / appScrollPix;
-    if (alpha < 0) {
-      alpha = 0;
-    } else if (alpha > 1) {
-      alpha = 1;
-    }
-    // alpha > 0.5 时白色 AppBar 明显可见，使用深色图标；否则使用浅色图标适配 Banner
+    double alpha = (pixels / appScrollPix).clamp(0.0, 1.0);
     _updateStatusBar(alpha > 0.5);
-    setState(() {
-      _appBarAlpha = alpha;
-    });
+    // 只更新 notifier，不触发整页 setState
+    _alphaNotifier.value = alpha;
   }
 
   @override
   void dispose() {
+    _alphaNotifier.dispose();
     SystemChrome.setSystemUIOverlayStyle(_defaultStyle);
     super.dispose();
   }
@@ -169,17 +203,14 @@ class _HomePageState extends State<HomePage>
     try {
       debugPrint("请求开始");
       var fetch = await HomeDao.fetch(position: position);
-      if (position == 0) {
-        homeArModelEntity = fetch;
-        index = 1;
-      } else {
-        homeArModelEntity?.datas?.addAll(fetch?.datas ?? []);
-        index++;
-      }
       setState(() {
-        homeArModelEntity?.datas?.forEach((e) {
-          debugPrint("forEach: ${e.title}");
-        });
+        if (position == 0) {
+          homeArModelEntity = fetch;
+          index = 1;
+        } else {
+          homeArModelEntity?.datas?.addAll(fetch?.datas ?? []);
+          index++;
+        }
       });
     } catch (e) {
       debugPrint(e.toString());
@@ -194,7 +225,7 @@ class _HomePageState extends State<HomePage>
               ?.map((e) => e.imagePath!)
               .whereType<String>()
               .toList() ??
-              [];
+          [];
 
       debugPrint("bannerList: $bannerList");
       setState(() {
@@ -216,5 +247,9 @@ class _HomePageState extends State<HomePage>
     } catch (e) {
       debugPrint(e.toString());
     }
+  }
+
+  void _jumpToSearch() {
+    NavigatorUtil.push(context, SearchPage());
   }
 }

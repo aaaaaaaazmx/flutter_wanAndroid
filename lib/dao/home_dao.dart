@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:fluttet_demo/banner_entity.dart';
 import 'package:fluttet_demo/dao/header_util.dart';
-import 'package:fluttet_demo/dao/login_dao.dart';
 import 'package:fluttet_demo/generated/hot_key_entity.dart';
 import 'package:fluttet_demo/model/home_ar_model_entity.dart';
 import 'package:fluttet_demo/util/navigator_util.dart';

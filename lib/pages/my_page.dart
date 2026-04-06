@@ -10,6 +10,7 @@ class MyPage extends StatefulWidget{
 class _MyPageState extends State<MyPage> with AutomaticKeepAliveClientMixin {
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       appBar: AppBar(title: Text("我的")),
       body: Column(children: [Text("我的")]),

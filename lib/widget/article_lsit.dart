@@ -20,23 +20,23 @@ class ArticleLsit extends StatelessWidget {
       physics: NeverScrollableScrollPhysics(),
       itemCount: articleList?.length ?? 0,
       itemBuilder: (ct, index) {
-        return _ArticleItemWidget(data: articleList![index]);
+        return ArticleItemWidget(data: articleList![index]);
       },
     );
   }
 }
 
 /// 单个文章 item，持有点赞状态
-class _ArticleItemWidget extends StatefulWidget {
+class ArticleItemWidget extends StatefulWidget {
   final HomeArModelDatas data;
 
-  const _ArticleItemWidget({required this.data});
+  const ArticleItemWidget({super.key, required this.data});
 
   @override
-  State<_ArticleItemWidget> createState() => _ArticleItemWidgetState();
+  State<ArticleItemWidget> createState() => _ArticleItemWidgetState();
 }
 
-class _ArticleItemWidgetState extends State<_ArticleItemWidget>
+class _ArticleItemWidgetState extends State<ArticleItemWidget>
     with SingleTickerProviderStateMixin {
   bool _isLiked = false;
   late AnimationController _animController;

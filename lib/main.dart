@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:fluttet_demo/pages/home_page.dart';
 import 'package:fluttet_demo/pages/login_page.dart';
 import 'package:fluttet_demo/theme/app_theme.dart';
 import 'package:fluttet_demo/util/screen_adapter_help.dart';
 import 'package:hi_cache/hi_cache.dart';
 
 import 'dao/login_dao.dart';
-import 'demo/list_demo.dart';
 import 'widget/tab_navigator.dart';
 
 void main() async{

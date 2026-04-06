@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
+import 'package:fluttet_demo/widget/search_bar_widget.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
@@ -8,12 +8,25 @@ class SearchPage extends StatefulWidget {
   State<SearchPage> createState() => _SearchPageState();
 }
 
-class _SearchPageState extends State<SearchPage> with AutomaticKeepAliveClientMixin{
+class _SearchPageState extends State<SearchPage>
+    with AutomaticKeepAliveClientMixin {
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
+      backgroundColor: Colors.grey,
       appBar: AppBar(title: Text("搜索")),
-      body: Column(children: [Text("搜索")]),
+      body: Column(
+        children: [
+          SearchBarWidget(
+            searchBarType: SearchBarType.homeLight,
+            hint: "请输入搜索内容",
+            onChanged: (s) {
+              debugPrint("搜索内容: $s");
+            },
+          ),
+        ],
+      ),
     );
   }
 
